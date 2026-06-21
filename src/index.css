@@ -1,59 +1,76 @@
 @import "tailwindcss";
 
-@layer utilities {
-  .font-accent {
-    font-family: Georgia, 'Times New Roman', serif;
-  }
-  .breathe-animation {
-    animation: breathe 16s ease-in-out infinite;
-    transform-origin: center;
-    opacity: 0.8;
-  }
-  .grid-cols-52 {
-    grid-template-columns: repeat(52, minmax(0, 1fr));
-  }
-  .animate-in {
-    animation-fill-mode: both;
-    animation-duration: 0.3s;
-    animation-timing-function: ease-out;
-  }
-  .fade-in {
-    animation-name: fadeIn;
-  }
-  .slide-in-from-right-4 {
-    animation-name: slideInFromRight;
-  }
-  .slide-in-from-left-4 {
-    animation-name: slideInFromLeft;
-  }
-  .slide-in-from-top-2 {
-    animation-name: slideInFromTop;
-  }
-  .zoom-in-95 {
-    animation-name: zoomIn95;
-  }
-  .duration-300 {
-    animation-duration: 0.3s;
-  }
-  .duration-500 {
-    animation-duration: 0.5s;
-  }
-  .duration-700 {
-    animation-duration: 0.7s;
-  }
-  .duration-1000 {
-    animation-duration: 1s;
-  }
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
-  }
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500&display=swap');
+
+/* ── Color palette ── */
+:root {
+  --ground-dark: #0b1825;
+  --ocean-dark: #0d2233;
+  --violet-dusk: #1a1428;
+  --teal-primary: #1a6880;
+  --teal-light: #7fb3c8;
+  --teal-muted: #4a7a8a;
+  --warm-paper: #f5f0e8;
+  --amber: #c4956a;
+  --sage: #9eb89e;
+  --sage-dark: #5a8a5a;
+  --body-text: #2d2420;
+  --muted-text: #9a8e84;
 }
 
+/* ── Typography ── */
+.font-serif {
+  font-family: 'DM Serif Display', Georgia, serif;
+}
+.font-sans {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--ground-dark);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+/* ── Breathing rings ── */
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid #7fb3c8;
+  animation: breathe 4s ease-in-out infinite;
+}
+.ring-2 {
+  animation-delay: 0.6s;
+}
+.ring-3 {
+  animation-delay: 1.2s;
+}
+
+/* ── Keyframes ── */
 @keyframes breathe {
-  0%, 100% { transform: scale(0.3); opacity: 0.4; }
-  25% { transform: scale(0.9); opacity: 0.9; }
-  50% { transform: scale(0.6); opacity: 0.7; }
-  75% { transform: scale(0.9); opacity: 0.9; }
+  0%, 100% { transform: scale(1); opacity: 0.18; }
+  50% { transform: scale(1.2); opacity: 0.52; }
+}
+
+@keyframes fadeUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); opacity: 0; }
+  50% { transform: scale(1.6); opacity: 0.4; }
 }
 
 @keyframes fadeIn {
@@ -61,37 +78,24 @@
   to { opacity: 1; }
 }
 
-@keyframes slideInFromRight {
-  from { opacity: 0; transform: translateX(1rem); }
-  to { opacity: 1; transform: translateX(0); }
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
 }
 
-@keyframes slideInFromLeft {
-  from { opacity: 0; transform: translateX(-1rem); }
-  to { opacity: 1; transform: translateX(0); }
+/* ── Progress bar animation ── */
+@keyframes progressFill {
+  from { width: 0%; }
+  to { width: 100%; }
 }
 
-@keyframes slideInFromTop {
-  from { opacity: 0; transform: translateY(-0.5rem); }
-  to { opacity: 1; transform: translateY(0); }
+/* ── Utility animations ── */
+.animate-fade-up {
+  animation: fadeUp 0.5s ease-out both;
 }
-
-@keyframes zoomIn95 {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out both;
 }
-
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #f1f5f9;
-}
-
-#root {
-  width: 100%;
-  min-height: 100vh;
+.animate-ring-pulse {
+  animation: ringPulse 2s ease-in-out infinite;
 }

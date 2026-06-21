@@ -1,40 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Home,
-  BarChart2,
-  Settings as SettingsIcon,
-  Calendar,
-  ShieldCheck
-} from 'lucide-react';
-import type { AppView, TriggerEntry, UserPrefs, TriggerTiming } from './types';
-import SafetyScreen from './components/SafetyScreen';
-import TriggerHome from './components/TriggerHome';
-import IntakeForm from './components/IntakeForm';
+import { ShieldCheck } from 'lucide-react';
+import type { AppView, TriggerEntry, UserPrefs, WOTState, PeacePlan } from './types';
+import HomeScreen from './components/HomeScreen';
+import SomaticScreen from './components/SomaticScreen';
 import CalmModule from './components/CalmModule';
-import OutputScreen from './components/OutputScreen';
-import Insights from './components/Insights';
-import DotMap from './components/DotMap';
-import Settings from './components/Settings';
+import IntakeForm from './components/IntakeForm';
+import PeacePlanScreen from './components/PeacePlan';
+import InsightsScreen from './components/InsightsScreen';
+import SettingsScreen from './components/SettingsScreen';
+import { generatePeacePlan } from './services/aiService';
 import './index.css';
 
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>('home');
   const [entries, setEntries] = useState<TriggerEntry[]>([]);
-  const [currentEntry, setCurrentEntry] = useState<TriggerEntry | null>(null);
+  const [currentEntry, setCurrentEntry] = useState<Partial<TriggerEntry> | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<PeacePlan | null>(null);
   const [prefs, setPrefs] = useState<UserPrefs>({
     privacyEnabled: false,
     passcode: null,
-    age: null,
-    relationshipStart: null,
-    safetyAcknowledged: false,
+    safetyAcknowledged: true,
   });
   const [isUnlocked, setIsUnlocked] = useState(true);
   const [passcodeInput, setPasscodeInput] = useState('');
 
   // Load from localStorage
   useEffect(() => {
-    const savedEntries = localStorage.getItem('pb_entries');
-    const savedPrefs = localStorage.getItem('pb_prefs');
+    const savedEntries = localStorage.getItem('pb2_entries');
+    const savedPrefs = localStorage.getItem('pb2_prefs');
     if (savedEntries) {
       try { setEntries(JSON.parse(savedEntries)); } catch {}
     }
@@ -51,68 +44,116 @@ const App: React.FC = () => {
 
   // Persist entries
   useEffect(() => {
-    localStorage.setItem('pb_entries', JSON.stringify(entries));
+    localStorage.setItem('pb2_entries', JSON.stringify(entries));
   }, [entries]);
 
   // Persist prefs
   useEffect(() => {
-    localStorage.setItem('pb_prefs', JSON.stringify(prefs));
+    localStorage.setItem('pb2_prefs', JSON.stringify(prefs));
   }, [prefs]);
 
-  const handleAcknowledgeSafety = () => {
-    setPrefs(prev => ({ ...prev, safetyAcknowledged: true }));
-  };
-
-  const handleTrigger = (mode: 'text' | 'person' | 'any', timing: TriggerTiming = 'already') => {
-    const newEntry: TriggerEntry = {
+  // Flow handlers
+  const handleTrigger = () => {
+    const entry: Partial<TriggerEntry> = {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
-      intensity: 5,
-      category: 'other',
-      need: 'be heard',
-      riskFactors: [],
-      description: '',
-      isText: mode === 'text',
-      isInPerson: mode === 'person',
-      timing,
+      intensity: 7, // default; set after calm
     };
-    setCurrentEntry(newEntry);
-    setView('intake');
+    setCurrentEntry(entry);
+    setCurrentPlan(null);
+    setView('somatic');
   };
 
-  const handleFinishIntake = (entry: TriggerEntry) => {
-    setCurrentEntry(entry);
+  const handleSomaticDone = () => {
     setView('calm');
   };
 
-  const handleFinishCalm = (finalIntensity: number) => {
-    if (currentEntry) {
-      const updated = { ...currentEntry, intensityAfterCalm: finalIntensity };
-      setCurrentEntry(updated);
-      setEntries(prev => [updated, ...prev]);
-      setView('output');
-    }
+  const handleCalmDone = (finalIntensity: number, wot: WOTState) => {
+    setCurrentEntry(prev => prev
+      ? { ...prev, intensityAfterCalm: finalIntensity, wot }
+      : null
+    );
+    setView('intake');
   };
 
-  // Safety screen — show on first open
-  if (!prefs.safetyAcknowledged) {
-    return <SafetyScreen onAcknowledge={handleAcknowledgeSafety} />;
-  }
+  const handleIntakeDone = (description?: string) => {
+    setCurrentEntry(prev => {
+      const updated = prev ? { ...prev, description } : null;
+      // Kick off AI call
+      if (updated) {
+        generatePeacePlan(updated, entries).then(plan => {
+          setCurrentPlan(plan);
+        });
+      }
+      return updated;
+    });
+    setView('plan');
+  };
 
-  // Passcode lock screen
-  if (!isUnlocked) {
+  const handlePlanClose = () => {
+    if (currentEntry && currentEntry.id) {
+      const completed: TriggerEntry = {
+        id: currentEntry.id,
+        timestamp: currentEntry.timestamp ?? Date.now(),
+        intensity: currentEntry.intensity ?? 5,
+        intensityAfterCalm: currentEntry.intensityAfterCalm,
+        wot: currentEntry.wot,
+        description: currentEntry.description,
+      };
+      setEntries(prev => [completed, ...prev]);
+    }
+    setCurrentEntry(null);
+    setCurrentPlan(null);
+    setView('home');
+  };
+
+  // Passcode lock
+  if (prefs.privacyEnabled && !isUnlocked) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-900 text-white">
-        <ShieldCheck className="w-16 h-16 mb-6 text-emerald-400" />
-        <h1 className="text-2xl font-bold mb-8 font-accent">Private Mode</h1>
+      <div
+        style={{
+          background: '#0b1825',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '0 28px',
+        }}
+      >
+        <ShieldCheck size={48} color="#7fb3c8" style={{ marginBottom: 24 }} />
+        <p
+          style={{
+            fontFamily: 'DM Serif Display, Georgia, serif',
+            fontSize: 22,
+            color: '#c8dce8',
+            margin: '0 0 28px',
+          }}
+        >
+          Private Mode
+        </p>
         <input
           type="password"
           inputMode="numeric"
           maxLength={4}
-          placeholder="Enter Passcode"
-          className="w-full max-w-xs p-4 bg-slate-800 border border-slate-700 rounded-xl mb-4 text-center text-2xl tracking-widest outline-none focus:border-emerald-400"
+          placeholder="····"
+          style={{
+            width: '100%',
+            maxWidth: 200,
+            padding: '14px',
+            background: 'rgba(26,104,128,0.12)',
+            border: '1.5px solid #1a6880',
+            borderRadius: 12,
+            textAlign: 'center',
+            fontSize: 24,
+            letterSpacing: '0.3em',
+            color: '#c8dce8',
+            outline: 'none',
+            fontFamily: 'DM Serif Display, Georgia, serif',
+            marginBottom: 12,
+          }}
           value={passcodeInput}
-          onChange={(e) => {
+          onChange={e => {
             setPasscodeInput(e.target.value);
             if (e.target.value === prefs.passcode) {
               setIsUnlocked(true);
@@ -120,86 +161,98 @@ const App: React.FC = () => {
             }
           }}
         />
-        <p className="text-slate-400 text-sm">Passcode required for access</p>
+        <p
+          style={{
+            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+            fontSize: 13,
+            color: '#4a7a8a',
+          }}
+        >
+          Enter your passcode to continue
+        </p>
       </div>
     );
   }
 
+  const showNav = view === 'home' || view === 'insights' || view === 'settings';
+
   const renderView = () => {
     switch (view) {
       case 'home':
-        return <TriggerHome onTrigger={handleTrigger} />;
-      case 'intake':
-        return currentEntry ? (
-          <IntakeForm
-            entry={currentEntry}
-            onBack={() => setView('home')}
-            onNext={handleFinishIntake}
+        return (
+          <HomeScreen
+            onTrigger={handleTrigger}
+            onNavigate={setView}
+            currentView={view}
           />
-        ) : null;
+        );
+      case 'somatic':
+        return <SomaticScreen onDone={handleSomaticDone} />;
       case 'calm':
-        return currentEntry ? (
-          <CalmModule
-            entry={currentEntry}
-            onFinish={handleFinishCalm}
+        return <CalmModule onDone={handleCalmDone} />;
+      case 'intake':
+        return <IntakeForm onDone={handleIntakeDone} />;
+      case 'plan':
+        return (
+          <PeacePlanScreen
+            plan={currentPlan}
+            entry={currentEntry ?? {}}
+            onClose={handlePlanClose}
           />
-        ) : null;
-      case 'output':
-        return currentEntry ? (
-          <OutputScreen
-            entry={currentEntry}
-            onClose={() => setView('home')}
-          />
-        ) : null;
-      case 'log':
-        return <Insights entries={entries} onBack={() => setView('home')} />;
-      case 'dotmap':
-        return <DotMap prefs={prefs} setPrefs={setPrefs} onBack={() => setView('home')} />;
+        );
+      case 'insights':
+        return <InsightsScreen entries={entries} onBack={() => setView('home')} />;
       case 'settings':
-        return <Settings prefs={prefs} setPrefs={setPrefs} onBack={() => setView('home')} />;
+        return (
+          <SettingsScreen
+            prefs={prefs}
+            setPrefs={setPrefs}
+            onBack={() => setView('home')}
+          />
+        );
       default:
-        return <TriggerHome onTrigger={handleTrigger} />;
+        return (
+          <HomeScreen
+            onTrigger={handleTrigger}
+            onNavigate={setView}
+            currentView={view}
+          />
+        );
     }
   };
 
-  const showNav = view !== 'intake' && view !== 'calm';
-
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col bg-white shadow-xl overflow-hidden relative">
-      <main className="flex-1 overflow-y-auto pb-24">
-        {renderView()}
-      </main>
+    <div
+      style={{
+        maxWidth: 480,
+        margin: '0 auto',
+        minHeight: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {renderView()}
 
-      {showNav && (
-        <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 backdrop-blur-md border-t border-slate-100 px-6 py-3 flex justify-between items-center z-50">
-          <button
-            onClick={() => setView('home')}
-            className={`flex flex-col items-center transition-colors ${view === 'home' ? 'text-emerald-600' : 'text-slate-400'}`}
-          >
-            <Home className="w-6 h-6" />
-            <span className="text-[10px] mt-1 font-medium">Home</span>
-          </button>
-          <button
-            onClick={() => setView('log')}
-            className={`flex flex-col items-center transition-colors ${view === 'log' ? 'text-emerald-600' : 'text-slate-400'}`}
-          >
-            <BarChart2 className="w-6 h-6" />
-            <span className="text-[10px] mt-1 font-medium">Insights</span>
-          </button>
-          <button
-            onClick={() => setView('dotmap')}
-            className={`flex flex-col items-center transition-colors ${view === 'dotmap' ? 'text-emerald-600' : 'text-slate-400'}`}
-          >
-            <Calendar className="w-6 h-6" />
-            <span className="text-[10px] mt-1 font-medium">Perspective</span>
-          </button>
-          <button
-            onClick={() => setView('settings')}
-            className={`flex flex-col items-center transition-colors ${view === 'settings' ? 'text-emerald-600' : 'text-slate-400'}`}
-          >
-            <SettingsIcon className="w-6 h-6" />
-            <span className="text-[10px] mt-1 font-medium">Settings</span>
-          </button>
+      {/* Nav — only on home/insights/settings, and HomeScreen renders its own nav */}
+      {/* InsightsScreen and SettingsScreen have their own back buttons */}
+      {showNav && view !== 'home' && (
+        <nav
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            maxWidth: 480,
+            margin: '0 auto',
+            background: '#f5f0e8',
+            borderTop: '1px solid #e8e2d8',
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 56,
+            padding: '12px 0 20px',
+            zIndex: 50,
+          }}
+        >
         </nav>
       )}
     </div>

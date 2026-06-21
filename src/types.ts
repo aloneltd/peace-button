@@ -1,47 +1,26 @@
-
-export type AppView = 'home' | 'intake' | 'calm' | 'output' | 'log' | 'dotmap' | 'settings' | 'safety';
-
-export type TopicCategory = 'money' | 'chores' | 'intimacy' | 'family' | 'jealousy' | 'time' | 'respect' | 'other';
-
-export type UserNeed = 'be heard' | 'reassurance' | 'solution' | 'space' | 'apology' | 'clarity' | 'fairness' | 'transparency' | 'support' | 'connection' | 'safety';
-
-export type RiskFactor = 'regret' | 'spiraling' | 'blamed' | 'shutting down';
-
-export type TriggerTiming = 'before' | 'already';
+export type AppView = 'home' | 'somatic' | 'calm' | 'intake' | 'plan' | 'insights' | 'settings';
+export type WOTState = 'too-fast' | 'too-slow' | 'balanced'; // window of tolerance
 
 export interface TriggerEntry {
   id: string;
   timestamp: number;
   intensity: number;
-  category: TopicCategory;
-  need: UserNeed;
-  riskFactors: RiskFactor[];
-  description: string;
-  isText: boolean;
-  isInPerson: boolean;
-  timing: TriggerTiming;
   intensityAfterCalm?: number;
+  wot?: WOTState; // hyperarousal vs hypoarousal
+  description?: string;
 }
 
 export interface PeacePlan {
-  textMessage: {
-    soft: string;
-    direct: string;
-  };
-  spokenScript: string;
-  connectionQuestion: string;
-  boundaryOption: string;
-  repairLater: {
-    prompts: string[];
-    plan: string;
-  };
+  openWith: string;       // amber card — the opening line
+  nameYourNeed: string;   // teal card — naming the need
+  offerAStep: string;     // sage card — one concrete action
+  bridgeNow: string;      // the co-regulation sentence to say RIGHT NOW
+  patternNote?: string;   // if AI detected a pattern from history
 }
 
 export interface UserPrefs {
   privacyEnabled: boolean;
   passcode: string | null;
-  age: number | null;
-  relationshipStart: string | null;
-  name?: string;
-  safetyAcknowledged?: boolean;
+  safetyAcknowledged: boolean;
+  attachmentStyle?: 'anxious' | 'avoidant' | 'secure' | null;
 }
