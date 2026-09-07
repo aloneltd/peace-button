@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 interface IntakeFormProps {
   onDone: (description?: string) => void;
@@ -6,6 +6,17 @@ interface IntakeFormProps {
 
 const IntakeForm: React.FC<IntakeFormProps> = ({ onDone }) => {
   const [description, setDescription] = useState('');
+  // REDTEAM: a fast double-tap/mash on "Get my plan" (or the skip link right after it) fired
+  // onDone — and therefore the AI call in the parent — more than once per session. Harmless to
+  // data, but it burned extra AI quota and could race two plans into the same view. A submitted
+  // ref (not state, so it can't be bypassed by a click that lands before a re-render) makes both
+  // buttons a one-shot.
+  const submitted = useRef(false);
+  const submitOnce = (value?: string) => {
+    if (submitted.current) return;
+    submitted.current = true;
+    onDone(value);
+  };
 
   return (
     <div
@@ -56,7 +67,7 @@ const IntakeForm: React.FC<IntakeFormProps> = ({ onDone }) => {
         />
 
         <button
-          onClick={() => onDone(description.trim() || undefined)}
+          onClick={() => submitOnce(description.trim() || undefined)}
           style={{
             width: '100%',
             background: '#1a6880',
@@ -77,7 +88,7 @@ const IntakeForm: React.FC<IntakeFormProps> = ({ onDone }) => {
         </button>
 
         <button
-          onClick={() => onDone(undefined)}
+          onClick={() => submitOnce(undefined)}
           style={{
             width: '100%',
             background: 'none',

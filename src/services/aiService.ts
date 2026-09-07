@@ -84,6 +84,15 @@ ${buildHistorySummary(history)}
 
 Generate my peace plan as JSON.`;
 
+  // REDTEAM: the server-side chain has its own 18s timeout, but that only protects against a
+  // slow *upstream provider* — a stalled connection to /api/ai itself (bad network, a proxy that
+  // swallows the request) never reaches that code and previously left the plan screen showing
+  // the skeleton forever with no signal to the user (the only escape was noticing the always-
+  // present "I'm ready" button and giving up on a personalized plan). A client-side abort after
+  // 20s guarantees the person gets a fallback plan on its own instead of relying on them to bail.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+
   try {
     const response = await fetch('/api/ai', {
       method: 'POST',
@@ -95,6 +104,7 @@ Generate my peace plan as JSON.`;
         maxTokens: 700,
         jsonMode: true,
       }),
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -114,5 +124,7 @@ Generate my peace plan as JSON.`;
   } catch (err) {
     console.error('AI service error:', err);
     return FALLBACK_PLAN;
+  } finally {
+    clearTimeout(timeout);
   }
 };

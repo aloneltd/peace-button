@@ -30,14 +30,31 @@ const App: React.FC = () => {
     const savedEntries = localStorage.getItem('pb2_entries');
     const savedPrefs = localStorage.getItem('pb2_prefs');
     if (savedEntries) {
-      try { setEntries(JSON.parse(savedEntries)); } catch {}
+      try {
+        const parsed = JSON.parse(savedEntries);
+        // REDTEAM: JSON.parse succeeds on any valid JSON, not just an array — a hand-edited or
+        // corrupted value (e.g. "{}" ) used to sail through this try/catch and get set as
+        // `entries`, then crash InsightsScreen's entries.slice()/entries.filter() with a blank
+        // white screen the moment the user opened Insights. Validate the shape, not just that it
+        // parses.
+        if (Array.isArray(parsed)) setEntries(parsed);
+        else console.error('pb2_entries in localStorage was not an array — ignoring:', parsed);
+      } catch {}
     }
     if (savedPrefs) {
       try {
-        const p: UserPrefs = JSON.parse(savedPrefs);
-        setPrefs(p);
-        if (p.privacyEnabled && p.passcode) {
-          setIsUnlocked(false);
+        const p = JSON.parse(savedPrefs) as Partial<UserPrefs>;
+        if (p && typeof p === 'object') {
+          const safePrefs: UserPrefs = {
+            privacyEnabled: Boolean(p.privacyEnabled),
+            passcode: typeof p.passcode === 'string' ? p.passcode : null,
+            safetyAcknowledged: p.safetyAcknowledged !== false,
+            attachmentStyle: p.attachmentStyle ?? null,
+          };
+          setPrefs(safePrefs);
+          if (safePrefs.privacyEnabled && safePrefs.passcode) {
+            setIsUnlocked(false);
+          }
         }
       } catch {}
     }
@@ -108,6 +125,20 @@ const App: React.FC = () => {
     setView('home');
   };
 
+  // REDTEAM: Private Mode had no way back if the passcode was forgotten — Settings (where
+  // privacy could be turned off) lives behind the very lock it controls, so a user who set a
+  // 4-digit code under stress and forgot it was permanently trapped outside their own app with
+  // no in-app recovery. There is no server to verify against, so the only honest fix is the same
+  // one Settings already offers for clearing history: wipe local data and start over. It costs
+  // the session history, which is the accepted trade-off of a fully local, no-account app.
+  const handleForgotPasscode = () => {
+    if (window.confirm('Reset the app and clear all saved session history? This cannot be undone, but it will get you back in.')) {
+      localStorage.removeItem('pb2_entries');
+      localStorage.removeItem('pb2_prefs');
+      window.location.reload();
+    }
+  };
+
   // Passcode lock
   if (prefs.privacyEnabled && !isUnlocked) {
     return (
@@ -167,10 +198,27 @@ const App: React.FC = () => {
             fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
             fontSize: 13,
             color: '#4a7a8a',
+            margin: '0 0 20px',
           }}
         >
           Enter your passcode to continue
         </p>
+        <button
+          onClick={handleForgotPasscode}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#3f6c7c',
+            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+            fontSize: 12,
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            padding: 8,
+          }}
+        >
+          Forgot passcode? Reset app
+        </button>
       </div>
     );
   }
