@@ -4,6 +4,14 @@ import { GoogleGenAI } from '@google/genai'
 // Module-level: allocated once per warm serverless instance
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
 
+// Free-tier resilience: gemini-2.5-flash-lite has its own quota bucket, so when Flash returns
+// 429/503 we retry once on Lite instead of failing the user.
+const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'] as const
+function isQuotaError(e: unknown): boolean {
+  const m = e instanceof Error ? e.message : String(e)
+  return /429|503|RESOURCE_EXHAUSTED|UNAVAILABLE|quota|overloaded/i.test(m)
+}
+
 const responseCache = new Map<string, { text: string; expiresAt: number }>()
 const CACHE_TTL = 300_000
 
@@ -42,22 +50,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const r = await Promise.race([
-      ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: messages.slice(-10).map((m: { role: string; text: string }) => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: m.text }],
-        })),
-        config: {
-          systemInstruction,
-          temperature,
-          maxOutputTokens: Math.min(Number(maxTokens) || 2048, 2048),
-          // gemini-2.5-flash is a thinking model: without this its reasoning eats the output
-          // budget and the JSON plan comes back truncated ("Unterminated string in JSON").
-          thinkingConfig: { thinkingBudget: 0 },
-          ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
-        },
-      }),
+      (async () => {
+        let lastErr: unknown
+        for (const model of MODELS) {
+          try {
+            return await ai.models.generateContent({
+              model,
+              contents: messages.slice(-10).map((m: { role: string; text: string }) => ({
+                role: m.role === 'user' ? 'user' : 'model',
+                parts: [{ text: m.text }],
+              })),
+              config: {
+                systemInstruction,
+                temperature,
+                maxOutputTokens: Math.min(Number(maxTokens) || 2048, 2048),
+                // gemini-2.5-flash is a thinking model: without this its reasoning eats the output
+                // budget and the JSON plan comes back truncated ("Unterminated string in JSON").
+                thinkingConfig: { thinkingBudget: 0 },
+                ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+              },
+            })
+          } catch (e) {
+            lastErr = e
+            if (!isQuotaError(e) || model === MODELS[MODELS.length - 1]) throw e
+            console.warn(`[api/ai] ${model} quota/unavailable — retrying on the next model`)
+          }
+        }
+        throw lastErr
+      })(),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
     ])
 
