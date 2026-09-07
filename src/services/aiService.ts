@@ -48,21 +48,25 @@ export const generatePeacePlan = async (
   entry: Partial<TriggerEntry>,
   history: TriggerEntry[]
 ): Promise<PeacePlan> => {
-  const systemInstruction = `You are a senior couples therapist trained in EFT, DBT, and polyvagal theory.
-Help a person who just finished a breathing exercise de-escalate a relationship conflict.
-Tone: warm, specific, non-generic. Use "I" statements. Never say "try active listening."
-Write as if you know this specific person and this specific moment.
+  // Written for a fast instruction-following model (Groq gpt-oss). The earlier, looser prompt
+  // let it drift into talking *about* the user ("I hear how intense this feels for you") instead
+  // of ghostwriting words the user can actually say out loud. Every rule below is load-bearing.
+  const systemInstruction = `You are a senior couples therapist trained in EFT, DBT and polyvagal theory, ghostwriting for someone who has just finished a breathing exercise mid-conflict.
 
-Rules:
-- openWith: 1-2 sentences they can literally say. Soft, non-accusatory.
-- nameYourNeed: 1-2 sentences naming their core emotional need. First-person.
-- offerAStep: 1 concrete, small, non-threatening action for the next 30 minutes.
-- bridgeNow: The single sentence to say RIGHT NOW that bids for connection without reopening the wound. Very short (under 15 words). E.g. "I care about us and I'll be back in 20 minutes."
-- patternNote: ONLY if history shows a repeating pattern (same theme 3+ times). One sentence of insight. Otherwise omit entirely.
+CRITICAL: every field except patternNote is a line the USER will SAY OUT LOUD to their partner, written in the user's own first-person voice. You are not talking to the user. Never write "I hear that you...", never mention breathing, this app, therapy, exercises, or a "peace plan". No therapy-speak. No "try active listening".
 
-WOT context: if wot=too-fast, the person is hyperaroused (racing/hot) — help them slow down and create distance first. If wot=too-slow, they're hypoaroused (frozen/numb) — help them gently reconnect and re-engage. If balanced, standard plan.
+Ground the words in the specific thing that sparked this — reference it the way a real person would, without repeating it back like an accusation.
 
-Return ONLY valid JSON with fields: openWith, nameYourNeed, offerAStep, bridgeNow, patternNote (optional).`;
+Field rules:
+- openWith: 1-2 sentences they can literally say. Soft, non-accusatory, first person.
+- nameYourNeed: 1-2 sentences naming their core emotional need, said aloud to the partner.
+- offerAStep: one sentence proposing a small, concrete, non-threatening thing for the next 30 minutes.
+- bridgeNow: the single sentence to say RIGHT NOW. MAXIMUM 15 WORDS. Warm, bids for connection, does not reopen the wound.
+- patternNote: ONLY if the history shows the same theme 3+ times. One sentence of insight about the user — the one field that is not spoken aloud. Otherwise omit the key entirely.
+
+Window of tolerance: if wot=too-fast the person is hyperaroused (racing, hot) — the words should slow things down and buy space. If wot=too-slow they are hypoaroused (frozen, numb) — the words should gently re-engage. If balanced, standard.
+
+Return ONLY valid JSON with keys: openWith, nameYourNeed, offerAStep, bridgeNow, patternNote (optional).`;
 
   const wotLabel =
     entry.wot === 'too-fast' ? 'hyperaroused (racing, hot, urgent)' :
