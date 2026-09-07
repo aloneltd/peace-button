@@ -4,9 +4,9 @@ import { GoogleGenAI } from '@google/genai'
 // Module-level: allocated once per warm serverless instance
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
 
-// Free-tier resilience: gemini-2.5-flash-lite has its own quota bucket, so when Flash returns
-// 429/503 we retry once on Lite instead of failing the user.
-const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'] as const
+// Free-tier resilience: when gemini-2.5-flash returns 429/503 we retry once on gemini-3.5-flash-lite,
+// which has its own quota bucket. (gemini-2.5-flash-lite is retired on this key → 404.)
+const MODELS = ['gemini-2.5-flash', 'gemini-3.5-flash-lite'] as const
 function isQuotaError(e: unknown): boolean {
   const m = e instanceof Error ? e.message : String(e)
   return /429|503|RESOURCE_EXHAUSTED|UNAVAILABLE|quota|overloaded/i.test(m)
@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 maxOutputTokens: Math.min(Number(maxTokens) || 2048, 2048),
                 // gemini-2.5-flash is a thinking model: without this its reasoning eats the output
                 // budget and the JSON plan comes back truncated ("Unterminated string in JSON").
-                thinkingConfig: { thinkingBudget: 0 },
+                ...(model === 'gemini-2.5-flash' ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
                 ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
               },
             })
