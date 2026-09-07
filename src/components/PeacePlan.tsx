@@ -58,6 +58,63 @@ const Card: React.FC<{
   </div>
 );
 
+/* Skeleton mirrors the real cards below (same accents, same labels, same rhythm) so the
+   transition from "writing" to "written" is a fill-in, not a layout jump. */
+const SKELETON = [
+  { label: 'Open with', accent: '#c4956a', lines: [96, 68] },
+  { label: 'Name what you need', accent: '#1a6880', lines: [90, 55] },
+  { label: 'Offer a step', accent: '#9eb89e', lines: [93, 72] },
+  { label: 'Something to say right now', accent: '#9a8e84', lines: [64] },
+] as const;
+
+const SkeletonCard: React.FC<{ accent: string; label: string; lines: readonly number[]; delay: number }> = ({
+  accent,
+  label,
+  lines,
+  delay,
+}) => (
+  <div
+    style={{
+      display: 'flex',
+      borderRadius: 12,
+      overflow: 'hidden',
+      marginBottom: 10,
+      animation: 'fadeUp 0.4s ease-out both',
+      animationDelay: `${delay}ms`,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+    }}
+  >
+    <div style={{ width: 4, background: accent, flexShrink: 0, opacity: 0.5 }} />
+    <div style={{ background: 'white', flex: 1, padding: '14px 16px' }}>
+      <p
+        style={{
+          fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+          fontSize: 11,
+          color: '#c3bab0',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          fontWeight: 500,
+          margin: '0 0 10px',
+        }}
+      >
+        {label}
+      </p>
+      {lines.map((w, i) => (
+        <div
+          key={i}
+          className="pb-shimmer"
+          style={{
+            height: 11,
+            width: `${w}%`,
+            borderRadius: 6,
+            marginBottom: i === lines.length - 1 ? 0 : 8,
+          }}
+        />
+      ))}
+    </div>
+  </div>
+);
+
 const PeacePlan: React.FC<PeacePlanProps> = ({ plan, entry, onClose }) => {
   const before = entry.intensity ?? null;
   const after = entry.intensityAfterCalm ?? null;
@@ -98,30 +155,51 @@ const PeacePlan: React.FC<PeacePlanProps> = ({ plan, entry, onClose }) => {
             margin: 0,
           }}
         >
-          Here's what to say next.
+          {plan ? "Here's what to say next." : 'Finding your words…'}
         </p>
       </div>
 
-      {/* Loading state */}
+      {/* Loading state — the real card layout, greyed, so the shape of the answer is on screen
+          immediately and the plan simply fills in rather than replacing a spinner. */}
       {!plan && (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <p
-            style={{
-              fontFamily: 'DM Serif Display, Georgia, serif',
-              fontStyle: 'italic',
-              fontSize: 20,
-              color: '#9a8e84',
-              animation: 'fadeIn 0.5s ease-out infinite alternate',
-            }}
-          >
-            ...
-          </p>
+        <div aria-busy="true" aria-label="Writing your plan">
+          {SKELETON.map((s, i) => (
+            <SkeletonCard key={s.label} accent={s.accent} label={s.label} lines={s.lines} delay={i * 90} />
+          ))}
         </div>
       )}
 
       {/* Plan cards */}
       {plan && (
         <>
+          {plan.isFallback && (
+            <div
+              style={{
+                background: '#f3ece1',
+                border: '1px solid #e3d6c2',
+                borderRadius: 12,
+                padding: '11px 14px',
+                marginBottom: 12,
+                display: 'flex',
+                gap: 9,
+                alignItems: 'flex-start',
+              }}
+            >
+              <Info size={14} color="#c4956a" style={{ marginTop: 2, flexShrink: 0 }} />
+              <p
+                style={{
+                  fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+                  fontSize: 12.5,
+                  color: '#8a7a68',
+                  margin: 0,
+                  lineHeight: 1.55,
+                }}
+              >
+                We couldn't reach the writer just now, so these are our standard words rather than
+                yours. They still work.
+              </p>
+            </div>
+          )}
           <Card
             accent="#c4956a"
             labelColor="#c4956a"

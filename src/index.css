@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500&display=swap');
+/* Fonts are loaded via <link rel=preconnect>+<link> in index.html — a CSS @import here would
+   serialise a second, render-blocking request for the exact same stylesheet. */
 
 /* ── Color palette ── */
 :root {
@@ -98,4 +99,20 @@ body {
 }
 .animate-ring-pulse {
   animation: ringPulse 2s ease-in-out infinite;
+}
+
+/* ── Plan skeleton shimmer ──
+   Shown for the ~1s the model takes. Respects reduced-motion: someone mid-conflict
+   does not need a moving gradient, so it degrades to a flat grey block. */
+.pb-shimmer {
+  background: linear-gradient(90deg, #efeae2 25%, #e3ddd3 37%, #efeae2 63%);
+  background-size: 400% 100%;
+  animation: pbShimmer 1.4s ease-in-out infinite;
+}
+@keyframes pbShimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-shimmer { animation: none; background: #ece7df; }
 }

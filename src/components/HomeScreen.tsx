@@ -1,14 +1,25 @@
 import React from 'react';
-import { Heart, BarChart2, Settings } from 'lucide-react';
+import { Heart, BarChart2, Settings, Lock } from 'lucide-react';
 import type { AppView } from '../types';
 
 interface HomeScreenProps {
   onTrigger: () => void;
   onNavigate: (view: AppView) => void;
   currentView: AppView;
+  /** No sessions logged yet — show the "what is this / what happens" primer. */
+  isFirstTime?: boolean;
+  onSafety?: () => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onTrigger, onNavigate, currentView }) => {
+/* The three beats of the flow, so someone arriving cold knows what a tap commits them to.
+   Hidden once they have a session in Insights — by then the empty screen is the point. */
+const STEPS = [
+  { n: '1', label: 'Ground & breathe', sub: '90 seconds' },
+  { n: '2', label: 'Say what happened', sub: 'optional' },
+  { n: '3', label: 'Get your words', sub: 'the plan' },
+];
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ onTrigger, onNavigate, currentView, isFirstTime = false, onSafety }) => {
   return (
     <div
       style={{
@@ -106,8 +117,115 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTrigger, onNavigate, currentV
           >
             Tap when you need to find your way back.
           </p>
+          {isFirstTime && (
+            <p
+              style={{
+                fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+                fontSize: 13,
+                color: '#6f9bad',
+                margin: '2px auto 0',
+                maxWidth: 340,
+                lineHeight: 1.65,
+              }}
+            >
+              You're mid-argument and the words aren't coming. Peace Button walks you down from
+              the spike, then writes the exact sentences to say next.
+            </p>
+          )}
         </div>
+
+        {/* First-run primer: the three beats + the privacy promise */}
+        {isFirstTime && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 18,
+              animation: 'fadeUp 0.6s ease-out 200ms both',
+            }}
+          >
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {STEPS.map(s => (
+                <div
+                  key={s.n}
+                  style={{
+                    background: 'rgba(26,104,128,0.10)',
+                    border: '1px solid rgba(26,104,128,0.35)',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                    minWidth: 104,
+                    textAlign: 'center',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+                      fontSize: 12,
+                      color: '#c8dce8',
+                      margin: 0,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {s.label}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+                      fontSize: 10.5,
+                      color: '#4a7a8a',
+                      margin: '3px 0 0',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {s.sub}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <p
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+                fontSize: 11.5,
+                color: '#4a7a8a',
+                margin: 0,
+              }}
+            >
+              <Lock size={12} />
+              Nothing leaves your device. No account, no sign-up.
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Always reachable, never shouting */}
+      {onSafety && (
+        <button
+          onClick={onSafety}
+          style={{
+            position: 'absolute',
+            bottom: 84,
+            left: 0,
+            right: 0,
+            margin: '0 auto',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#3f6c7c',
+            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+            fontSize: 11.5,
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            padding: 8,
+          }}
+        >
+          In danger right now? Crisis help
+        </button>
+      )}
 
       {/* Bottom nav */}
       <nav

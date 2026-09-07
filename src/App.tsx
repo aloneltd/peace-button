@@ -8,6 +8,7 @@ import IntakeForm from './components/IntakeForm';
 import PeacePlanScreen from './components/PeacePlan';
 import InsightsScreen from './components/InsightsScreen';
 import SettingsScreen from './components/SettingsScreen';
+import SafetyScreen from './components/SafetyScreen';
 import { generatePeacePlan } from './services/aiService';
 import './index.css';
 
@@ -184,6 +185,8 @@ const App: React.FC = () => {
             onTrigger={handleTrigger}
             onNavigate={setView}
             currentView={view}
+            isFirstTime={entries.length === 0}
+            onSafety={() => setView('safety')}
           />
         );
       case 'somatic':
@@ -202,12 +205,15 @@ const App: React.FC = () => {
         );
       case 'insights':
         return <InsightsScreen entries={entries} onBack={() => setView('home')} />;
+      case 'safety':
+        return <SafetyScreen asReference onAcknowledge={() => setView('home')} />;
       case 'settings':
         return (
           <SettingsScreen
             prefs={prefs}
             setPrefs={setPrefs}
             onBack={() => setView('home')}
+            onSafety={() => setView('safety')}
           />
         );
       default:
@@ -216,6 +222,8 @@ const App: React.FC = () => {
             onTrigger={handleTrigger}
             onNavigate={setView}
             currentView={view}
+            isFirstTime={entries.length === 0}
+            onSafety={() => setView('safety')}
           />
         );
     }

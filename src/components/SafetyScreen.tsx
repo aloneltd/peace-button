@@ -1,61 +1,168 @@
 import React from 'react';
-import { ShieldAlert, Phone } from 'lucide-react';
+import { ArrowLeft, Phone, MessageSquare, ShieldAlert } from 'lucide-react';
 
 interface Props {
   onAcknowledge: () => void;
+  /** true = shown on demand from the "crisis help" link, so the button reads "Back" not "I understand" */
+  asReference?: boolean;
 }
 
-const SafetyScreen: React.FC<Props> = ({ onAcknowledge }) => {
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-slate-50 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 animate-in fade-in duration-500">
-        <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
-            <ShieldAlert className="w-8 h-8 text-emerald-600" />
-          </div>
-        </div>
+/* PROJECT.md promises a safety screen with crisis resources. It existed as a component but was
+   never rendered, so the numbers were unreachable. Restyled here in the app's own language
+   (warm paper on ocean, DM Serif headings) instead of the orphaned Tailwind utilities it used. */
 
-        <h1 className="text-2xl font-bold text-slate-900 text-center mb-2 font-accent">Peace Button</h1>
-        <p className="text-slate-500 text-center text-sm mb-8">Private relationship de-escalation</p>
+const RESOURCES = [
+  {
+    icon: Phone,
+    label: 'National Domestic Violence Hotline (US)',
+    value: '1-800-799-7233',
+    href: 'tel:18007997233',
+  },
+  {
+    icon: MessageSquare,
+    label: 'Crisis Text Line',
+    value: 'Text HOME to 741741',
+    href: 'sms:741741&body=HOME',
+  },
+  {
+    icon: Phone,
+    label: 'Emergency services',
+    value: '911 (US) · 999 (UK) · 112 (EU)',
+    href: 'tel:911',
+  },
+];
 
-        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 mb-6">
-          <p className="text-sm text-amber-900 font-medium leading-relaxed text-center">
-            This app is not a substitute for professional help.{' '}
-            <strong>If you're in danger, call 911</strong> or text{' '}
-            <strong>HOME to 741741</strong> (Crisis Text Line).
-          </p>
-        </div>
-
-        <div className="space-y-3 mb-8">
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-            <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">National DV Hotline</p>
-              <p className="text-sm font-bold text-slate-800">1-800-799-SAFE (7233)</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-            <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Crisis Text Line</p>
-              <p className="text-sm font-bold text-slate-800">Text HOME to 741741</p>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-xs text-slate-400 text-center leading-relaxed mb-6">
-          Peace Button helps with communication and self-regulation. It is not therapy, emergency services, or legal advice. All data stays on your device.
-        </p>
-
+const SafetyScreen: React.FC<Props> = ({ onAcknowledge, asReference = false }) => (
+  <div
+    style={{
+      background: '#0b1825',
+      minHeight: '100vh',
+      padding: '48px 24px 48px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      animation: 'fadeUp 0.4s ease-out both',
+    }}
+  >
+    <div style={{ width: '100%', maxWidth: 380, margin: '0 auto' }}>
+      {asReference && (
         <button
           onClick={onAcknowledge}
-          className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold text-base shadow-lg hover:bg-emerald-700 transition-all active:scale-95"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#7fb3c8',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+            fontSize: 13,
+            padding: 0,
+            marginBottom: 28,
+          }}
         >
-          I Understand — Open App
+          <ArrowLeft size={16} /> Back
         </button>
+      )}
+
+      <ShieldAlert size={30} color="#c4956a" style={{ marginBottom: 16 }} />
+
+      <p
+        style={{
+          fontFamily: 'DM Serif Display, Georgia, serif',
+          fontStyle: 'italic',
+          fontSize: 23,
+          color: '#c8dce8',
+          margin: '0 0 10px',
+          lineHeight: 1.35,
+        }}
+      >
+        If you are not safe, this app is the wrong tool.
+      </p>
+      <p
+        style={{
+          fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+          fontSize: 13.5,
+          color: '#6f9bad',
+          margin: '0 0 26px',
+          lineHeight: 1.7,
+        }}
+      >
+        Peace Button helps with self-regulation and finding words. It is not therapy, emergency
+        services, or legal advice. Reach a human below.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+        {RESOURCES.map(r => {
+          const Icon = r.icon;
+          return (
+            <a
+              key={r.label}
+              href={r.href}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 13,
+                background: 'rgba(26,104,128,0.12)',
+                border: '1px solid rgba(26,104,128,0.4)',
+                borderRadius: 12,
+                padding: '13px 15px',
+                textDecoration: 'none',
+              }}
+            >
+              <Icon size={17} color="#7fb3c8" style={{ flexShrink: 0 }} />
+              <div>
+                <p
+                  style={{
+                    fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+                    fontSize: 10.5,
+                    color: '#4a7a8a',
+                    letterSpacing: '0.07em',
+                    textTransform: 'uppercase',
+                    margin: '0 0 3px',
+                    fontWeight: 500,
+                  }}
+                >
+                  {r.label}
+                </p>
+                <p
+                  style={{
+                    fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+                    fontSize: 14.5,
+                    color: '#e1f5ee',
+                    margin: 0,
+                    fontWeight: 500,
+                  }}
+                >
+                  {r.value}
+                </p>
+              </div>
+            </a>
+          );
+        })}
       </div>
+
+      <button
+        onClick={onAcknowledge}
+        style={{
+          width: '100%',
+          background: asReference ? 'rgba(26,104,128,0.25)' : '#1a6880',
+          border: asReference ? '1px solid #1a6880' : 'none',
+          borderRadius: 28,
+          padding: '15px 0',
+          color: '#e1f5ee',
+          fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
+          fontSize: 15,
+          fontWeight: 500,
+          cursor: 'pointer',
+          letterSpacing: '0.02em',
+        }}
+      >
+        {asReference ? 'Back to Peace Button' : 'I understand — open the app'}
+      </button>
     </div>
-  );
-};
+  </div>
+);
 
 export default SafetyScreen;

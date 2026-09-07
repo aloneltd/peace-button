@@ -6,6 +6,7 @@ const FALLBACK_PLAN: PeacePlan = {
   offerAStep: "Let's set a specific time in the next hour to sit down together — no phones, no distractions.",
   bridgeNow: "I care about us. I'll be back in 20 minutes.",
   patternNote: undefined,
+  isFallback: true,
 };
 
 const buildHistorySummary = (history: TriggerEntry[]): string => {
@@ -87,7 +88,7 @@ Generate my peace plan as JSON.`;
         messages: [{ role: 'user', text: userMessage }],
         systemInstruction,
         temperature: 0.8,
-        maxTokens: 1024,
+        maxTokens: 700,
         jsonMode: true,
       }),
     });

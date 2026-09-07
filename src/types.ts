@@ -1,4 +1,4 @@
-export type AppView = 'home' | 'somatic' | 'calm' | 'intake' | 'plan' | 'insights' | 'settings';
+export type AppView = 'home' | 'somatic' | 'calm' | 'intake' | 'plan' | 'insights' | 'settings' | 'safety';
 export type WOTState = 'too-fast' | 'too-slow' | 'balanced'; // window of tolerance
 
 export interface TriggerEntry {
@@ -16,6 +16,9 @@ export interface PeacePlan {
   offerAStep: string;     // sage card — one concrete action
   bridgeNow: string;      // the co-regulation sentence to say RIGHT NOW
   patternNote?: string;   // if AI detected a pattern from history
+  /** true when the model could not be reached and these are the built-in generic words.
+      Surfaced in the UI — a silent fallback that looks personal is worse than an honest one. */
+  isFallback?: boolean;
 }
 
 export interface UserPrefs {

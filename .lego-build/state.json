@@ -1,0 +1,14 @@
+{
+  "build": "peace-button",
+  "build_folder": "/Users/marksefaradi/Documents/Claude/WorkflowA/REBUILD/builds/peace-button",
+  "status": "box-art",
+  "task": "Redesign Peace Button into a crazy good relationship de-escalation tool",
+  "scope": "ship",
+  "target": "web_app",
+  "tier": "medium",
+  "depth": "deep",
+  "started": "2026-06-19",
+  "repo": "https://github.com/aloneltd/peace-button",
+  "live_url": "https://peace-button.vercel.app",
+  "personas_requested": ["sigmond", "george", "yarden", "designify"]
+}

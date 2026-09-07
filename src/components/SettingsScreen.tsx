@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Shield, Trash2 } from 'lucide-react';
+import { ArrowLeft, Shield, Trash2, LifeBuoy } from 'lucide-react';
 import type { UserPrefs } from '../types';
 
 interface SettingsScreenProps {
   prefs: UserPrefs;
   setPrefs: (prefs: UserPrefs) => void;
   onBack: () => void;
+  onSafety?: () => void;
 }
 
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ prefs, setPrefs, onBack }) => {
+const SettingsScreen: React.FC<SettingsScreenProps> = ({ prefs, setPrefs, onBack, onSafety }) => {
   const [newPasscode, setNewPasscode] = useState('');
   const [showPasscodeInput, setShowPasscodeInput] = useState(false);
 
@@ -195,6 +196,39 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ prefs, setPrefs, onBack
             </div>
           )}
         </div>
+
+        {/* Crisis resources — PROJECT.md promises these; they must be reachable at any time */}
+        {onSafety && (
+          <div
+            style={{
+              background: 'white',
+              borderRadius: 16,
+              padding: '4px 16px',
+              marginBottom: 16,
+            }}
+          >
+            <button
+              onClick={onSafety}
+              style={{
+                ...rowStyle,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                width: '100%',
+                textAlign: 'left',
+                borderBottom: 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <LifeBuoy size={18} color="#1a6880" />
+                <div>
+                  <p style={labelStyle}>Crisis resources</p>
+                  <p style={sublabelStyle}>Hotlines and what this app is not</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* Data section */}
         <div
