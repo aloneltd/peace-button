@@ -19,6 +19,30 @@ const buildHistorySummary = (history: TriggerEntry[]): string => {
   return lines.join('\n');
 };
 
+// Tolerant JSON extraction: strips ``` fences, then falls back to the outermost {...} block.
+const parsePlan = (raw: string): PeacePlan | null => {
+  const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+  const candidates = [clean];
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start !== -1 && end > start) candidates.push(clean.slice(start, end + 1));
+  for (const c of candidates) {
+    try {
+      const obj = JSON.parse(c) as Partial<PeacePlan>;
+      if (obj && typeof obj.openWith === 'string' && typeof obj.bridgeNow === 'string') {
+        return {
+          openWith: obj.openWith,
+          nameYourNeed: obj.nameYourNeed || FALLBACK_PLAN.nameYourNeed,
+          offerAStep: obj.offerAStep || FALLBACK_PLAN.offerAStep,
+          bridgeNow: obj.bridgeNow,
+          patternNote: obj.patternNote || undefined,
+        };
+      }
+    } catch { /* try next candidate */ }
+  }
+  return null;
+};
+
 export const generatePeacePlan = async (
   entry: Partial<TriggerEntry>,
   history: TriggerEntry[]
@@ -64,6 +88,7 @@ Generate my peace plan as JSON.`;
         systemInstruction,
         temperature: 0.8,
         maxTokens: 1024,
+        jsonMode: true,
       }),
     });
 
@@ -75,12 +100,11 @@ Generate my peace plan as JSON.`;
     const data = await response.json();
     const text: string = data.text ?? '';
 
-    const clean = text
-      .replace(/^```(?:json)?\n?/i, '')
-      .replace(/\n?```$/i, '')
-      .trim();
-
-    const parsed = JSON.parse(clean) as PeacePlan;
+    const parsed = parsePlan(text);
+    if (!parsed) {
+      console.error('AI returned no parseable plan:', text.slice(0, 200));
+      return FALLBACK_PLAN;
+    }
     return parsed;
   } catch (err) {
     console.error('AI service error:', err);

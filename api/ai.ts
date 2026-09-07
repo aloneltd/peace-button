@@ -29,13 +29,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown'
   if (!checkRateLimit(ip)) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' })
 
-  const { messages, systemInstruction, temperature = 0.7, maxTokens = 2048 } = req.body
+  const { messages, systemInstruction, temperature = 0.7, maxTokens = 2048, jsonMode = false } = req.body
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'messages array is required' })
   }
 
   const lastMsg = (messages as { role: string; text: string }[]).filter((m) => m.role === 'user').at(-1)?.text ?? ''
-  const cacheKey = `gemini-2.5-flash::${systemInstruction ?? ''}::${lastMsg}`
+  const cacheKey = `gemini-2.5-flash::${jsonMode ? 'json' : 'text'}::${systemInstruction ?? ''}::${lastMsg}`
   const now = Date.now()
   const cached = responseCache.get(cacheKey)
   if (cached && now < cached.expiresAt) return res.status(200).json({ text: cached.text })
@@ -52,6 +52,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           systemInstruction,
           temperature,
           maxOutputTokens: Math.min(Number(maxTokens) || 2048, 2048),
+          // gemini-2.5-flash is a thinking model: without this its reasoning eats the output
+          // budget and the JSON plan comes back truncated ("Unterminated string in JSON").
+          thinkingConfig: { thinkingBudget: 0 },
+          ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
         },
       }),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
